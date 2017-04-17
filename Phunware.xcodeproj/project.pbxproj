@@ -212,7 +212,6 @@
 			isa = PBXGroup;
 			children = (
 				BF9E307F1EA4852700E65BA3 /* Master */,
-				BF9E30851EA4855100E65BA3 /* EventsCVC.swift */,
 				BF9E307E1EA4852300E65BA3 /* Detail */,
 			);
 			name = Controller;
@@ -229,6 +228,7 @@
 		BF9E307F1EA4852700E65BA3 /* Master */ = {
 			isa = PBXGroup;
 			children = (
+				BF9E30851EA4855100E65BA3 /* EventsCVC.swift */,
 			);
 			name = Master;
 			sourceTree = "<group>";
