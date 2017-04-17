@@ -1,0 +1,177 @@
+//
+//  GradientView.swift
+//  Phunware
+//
+//  Created by Ampe on 4/12/17.
+//  Copyright © 2017 Ampe. All rights reserved.
+//
+
+import UIKit
+
+@IBDesignable open class GradientView: UIView {
+
+	public enum Mode {
+		case linear
+		case radial
+	}
+
+	public enum Direction {
+		case vertical
+		case horizontal
+	}
+
+	open var colors: [UIColor]? {
+        didSet { updateGradient() }
+	}
+
+	open var dimmedColors: [UIColor]? {
+        didSet { updateGradient() }
+	}
+
+    open var automaticallyDims: Bool = true
+
+	open var locations: [CGFloat]? {
+		didSet { updateGradient() }
+	}
+
+	@IBInspectable open var mode: Mode = .linear {
+		didSet { setNeedsDisplay() }
+	}
+
+	@IBInspectable open var direction: Direction = .vertical {
+		didSet { setNeedsDisplay() }
+	}
+
+	@IBInspectable open var drawsThinBorders: Bool = true {
+		didSet { setNeedsDisplay() }
+	}
+
+	/// The top border color. The default is `nil`.
+	@IBInspectable open var topBorderColor: UIColor? {
+		didSet { setNeedsDisplay() }
+	}
+
+	@IBInspectable open var rightBorderColor: UIColor? {
+		didSet { setNeedsDisplay() }
+	}
+
+	@IBInspectable open var bottomBorderColor: UIColor? {
+        didSet { setNeedsDisplay() }
+	}
+
+	@IBInspectable open var leftBorderColor: UIColor? {
+		didSet { setNeedsDisplay() }
+	}
+
+	// MARK: - View
+	override open func draw(_ rect: CGRect) {
+		let context = UIGraphicsGetCurrentContext()
+		let size = bounds.size
+
+		// Gradient
+		if let gradient = gradient {
+			let options: CGGradientDrawingOptions = [.drawsAfterEndLocation]
+			if mode == .linear {
+				let startPoint = CGPoint.zero
+				let endPoint = direction == .vertical ? CGPoint(x: 0, y: size.height) : CGPoint(x: size.width, y: 0)
+				context?.drawLinearGradient(gradient, start: startPoint, end: endPoint, options: options)
+			} else {
+				let center = CGPoint(x: bounds.midX, y: bounds.midY)
+				context?.drawRadialGradient(gradient, startCenter: center, startRadius: 0, endCenter: center, endRadius: min(size.width, size.height) / 2, options: options)
+			}
+		}
+
+		let screen: UIScreen = window?.screen ?? UIScreen.main
+		let borderWidth: CGFloat = drawsThinBorders ? 1.0 / screen.scale : 1.0
+
+		// Top Border
+		if let color = topBorderColor {
+			context?.setFillColor(color.cgColor)
+			context?.fill(CGRect(x: 0, y: 0, width: size.width, height: borderWidth))
+		}
+
+		let sideY: CGFloat = topBorderColor != nil ? borderWidth : 0
+		let sideHeight: CGFloat = size.height - sideY - (bottomBorderColor != nil ? borderWidth : 0)
+
+		// Right Border
+		if let color = rightBorderColor {
+			context?.setFillColor(color.cgColor)
+			context?.fill(CGRect(x: size.width - borderWidth, y: sideY, width: borderWidth, height: sideHeight))
+		}
+
+		// Bottom Border
+		if let color = bottomBorderColor {
+			context?.setFillColor(color.cgColor)
+			context?.fill(CGRect(x: 0, y: size.height - borderWidth, width: size.width, height: borderWidth))
+		}
+
+		// Left Border
+		if let color = leftBorderColor {
+			context?.setFillColor(color.cgColor)
+			context?.fill(CGRect(x: 0, y: sideY, width: borderWidth, height: sideHeight))
+		}
+	}
+
+	override open func tintColorDidChange() {
+		super.tintColorDidChange()
+
+		if automaticallyDims {
+			updateGradient()
+		}
+	}
+
+	override open func didMoveToWindow() {
+		super.didMoveToWindow()
+		contentMode = .redraw
+	}
+
+	// MARK: - Private
+	fileprivate var gradient: CGGradient?
+
+	fileprivate func updateGradient() {
+		gradient = nil
+		setNeedsDisplay()
+		let colors = gradientColors()
+		if let colors = colors {
+			let colorSpace = CGColorSpaceCreateDeviceRGB()
+			let colorSpaceModel = colorSpace.model
+
+			let gradientColors = colors.map { (color: UIColor) -> AnyObject! in
+				let cgColor = color.cgColor
+				let cgColorSpace = cgColor.colorSpace ?? colorSpace
+				if cgColorSpace.model == colorSpaceModel {
+					return cgColor as AnyObject!
+				}
+				var red: CGFloat = 0
+				var blue: CGFloat = 0
+				var green: CGFloat = 0
+				var alpha: CGFloat = 0
+				color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+				return UIColor(red: red, green: green, blue: blue, alpha: alpha).cgColor as AnyObject!
+			} as NSArray
+			gradient = CGGradient(colorsSpace: colorSpace, colors: gradientColors, locations: locations)
+		}
+	}
+
+    // Gradient
+	fileprivate func gradientColors() -> [UIColor]? {
+		if tintAdjustmentMode == .dimmed {
+			if let dimmedColors = dimmedColors {
+				return dimmedColors
+			}
+			if automaticallyDims {
+				if let colors = colors {
+					return colors.map {
+						var hue: CGFloat = 0
+						var brightness: CGFloat = 0
+						var alpha: CGFloat = 0
+						$0.getHue(&hue, saturation: nil, brightness: &brightness, alpha: &alpha)
+						return UIColor(hue: hue, saturation: 0, brightness: brightness, alpha: alpha)
+					}
+				}
+			}
+		}
+		return colors
+	}
+    
+}
